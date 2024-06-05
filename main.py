@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import json
+import logging
 
 app = Flask(__name__)
 
@@ -33,8 +34,7 @@ def create_user():
     users[user_id] = data
 
     # Save to the JSON file
-    with open('data.json', 'w') as f:
-        json.dump(users, f, indent=4)
+    save_to_file()
 
     return jsonify(data), 201
 
@@ -46,6 +46,8 @@ def update_user(id):
 
     if user:
         user.update(data)
+        # Save to the JSON file
+        save_to_file()
         return jsonify(user), 200
     else:
         return jsonify({"error": "User not found"}), 404
@@ -56,9 +58,19 @@ def delete_user(id):
     user = users.get(id)
     if user:
         users.pop(id)
+        # Save to the JSON file
+        save_to_file()
         return jsonify({"message": "User deleted"}), 200
     else:
         return jsonify({"error": "User not found"}), 404
+
+def save_to_file():
+    try:
+        with open('data.json', 'w') as f:
+            json.dump(users, f, indent=4)
+    except Exception as e:
+        logging.error("Failed to save data to file: %s", str(e))
+        return jsonify({"error": "Failed to save data to file. Please check the server logs for more details."}), 500
 
 if __name__ == '__main__':
     app.run(port=8000, debug=True)
