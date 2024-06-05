@@ -1,26 +1,64 @@
 from flask import Flask, request, jsonify
+import json
 
 app = Flask(__name__)
 
-@app.route('/get-user/<user_id>')
-def get_user(user_id):
-    user_data = {
-        'user_id': user_id,
-        'name': 'John Doe',
-        'email': 'john.doe@example.com'
-    }
+# Read the JSON file
+with open('data.json', 'r') as f:
+    users = json.load(f)
 
-    extra = request.args.get('extra')
-    if extra:
-        user_data['extra'] = extra
+# GET All
+@app.route('/users', methods=['GET'])
+def get_users():
+    return jsonify(users), 200
 
-    return jsonify(user_data), 200
+# GET One by ID
+@app.route('/users/<id>', methods=['GET'])
+def get_user(id):
+    user = users.get(id)
+    if user:
+        return jsonify(user), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
 
+# POST
 @app.route('/create-user', methods=['POST'])
 def create_user():
     data = request.get_json()
+    user_id = str(data.get('id'))
+    
+    if user_id in users:
+        return jsonify({"error": "User already exists"}), 400
+    
+    users[user_id] = data
+
+    # Save to the JSON file
+    with open('data.json', 'w') as f:
+        json.dump(users, f, indent=4)
 
     return jsonify(data), 201
+
+# PUT
+@app.route('/update-user/<id>', methods=['PUT'])
+def update_user(id):
+    data = request.get_json()
+    user = users.get(id)
+
+    if user:
+        user.update(data)
+        return jsonify(user), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
+    
+# DELETE
+@app.route('/delete-user/<id>', methods=['DELETE'])
+def delete_user(id):
+    user = users.get(id)
+    if user:
+        users.pop(id)
+        return jsonify({"message": "User deleted"}), 200
+    else:
+        return jsonify({"error": "User not found"}), 404
 
 if __name__ == '__main__':
     app.run(port=8000, debug=True)
